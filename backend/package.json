@@ -1,13 +1,13 @@
 {
   "name": "techstore-backend",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "API REST da TechStore desenvolvida para demonstrações de DevOps, CI/CD e Docker.",
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test" : "node tests/health.test.js"
-
+    "test": "node tests/health.test.js",
+    "test:lb": "node tests/loadbalance.test.js"
   },
   "keywords": [
     "techstore",
@@ -22,7 +22,8 @@
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

@@ -1,0 +1,101 @@
+# ==========================================
+# TechStore - CI/CD (GitHub Actions)
+#
+#  push/PR -> build da imagem -> sobe o ambiente completo (Compose)
+#          -> testes de saúde -> teste de balanceamento -> teste de carga (smoke)
+#          -> [só na main] publica a imagem no Docker Hub
+#
+# Secrets necessários (Settings > Secrets and variables > Actions):
+#   DOCKERHUB_USERNAME, DOCKERHUB_TOKEN
+# ==========================================
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  test:
+    name: Build e testes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependências (para rodar os testes)
+        working-directory: backend
+        run: npm ci
+
+      - name: Preparar .env
+        run: cp .env.example .env
+
+      - name: Build da imagem e subida do ambiente (2 réplicas)
+        # --wait espera todos os healthchecks passarem; se algum falhar, o job falha
+        run: docker compose up -d --build --wait
+
+      - name: Teste de saúde (via Nginx)
+        working-directory: backend
+        run: npm test
+        env:
+          API_URL: http://localhost:8080
+
+      - name: Escalar para 3 réplicas
+        run: docker compose up -d --no-recreate --scale app=3 --wait
+
+      - name: Teste de balanceamento (3 instâncias devem responder)
+        working-directory: backend
+        run: npm run test:lb
+        env:
+          API_URL: http://localhost:8080
+          EXPECTED_INSTANCES: 3
+
+      - name: Teste de carga (smoke) com k6
+        run: |
+          docker run --rm -i --network techstore_default \
+            -e BASE_URL=http://nginx -e PROFILE=smoke \
+            grafana/k6 run - < loadtest/load-test.js
+
+      - name: Logs em caso de falha
+        if: failure()
+        run: docker compose logs --tail=100
+
+      - name: Derrubar ambiente
+        if: always()
+        run: docker compose down -v
+
+  publish:
+    name: Publicar imagem no Docker Hub
+    needs: test
+    # Só publica em push na main (PRs apenas validam)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login no Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build e push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/techstore-api:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/techstore-api:${{ github.sha }}
