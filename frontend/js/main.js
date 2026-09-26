@@ -1,7 +1,28 @@
+(function(){
   var toggleVis = document.getElementById('toggleVis');
   var senha = document.getElementById('senha');
   var eyeIcon = document.getElementById('eyeIcon');
+  var statusEl = document.getElementById('status');
+  var instanceEl = document.getElementById('instance');
   var pressed = false;
+
+  function setStatus(msg, isError){
+    statusEl.style.color = isError ? '#ff6b6b' : 'var(--blue-store)';
+    statusEl.textContent = msg;
+  }
+
+  // Mostra qual réplica da API atendeu a última requisição
+  document.addEventListener('api:instance', function(e){
+    if(e.detail) instanceEl.textContent = e.detail;
+  });
+
+  // Ao abrir a página, verifica se a API está no ar
+  api.health()
+    .then(function(r){ if(!r.ok) throw new Error(); })
+    .catch(function(){
+      instanceEl.textContent = 'offline';
+      setStatus('API indisponível no momento. Tente novamente em instantes.', true);
+    });
 
   toggleVis.addEventListener('click', function(){
     pressed = !pressed;
@@ -15,31 +36,46 @@
 
   document.getElementById('forgotLink').addEventListener('click', function(e){
     e.preventDefault();
-    var status = document.getElementById('status');
-    status.textContent = 'Enviaremos instruções de recuperação para o e-mail cadastrado.';
+    setStatus('Recuperação de senha ainda não disponível.', false);
   });
 
   document.getElementById('loginForm').addEventListener('submit', function(e){
     e.preventDefault();
     var btn = document.getElementById('submitBtn');
-    var status = document.getElementById('status');
-    var loginVal = document.getElementById('login').value.trim();
+    var emailVal = document.getElementById('login').value.trim();
     var senhaVal = senha.value;
+    var remember = document.querySelector('input[name="remember"]').checked;
 
-    if(!loginVal || !senhaVal){
-      status.style.color = '#ff6b6b';
-      status.textContent = 'Preencha login e senha para continuar.';
+    if(!emailVal || !senhaVal){
+      setStatus('Preencha e-mail e senha para continuar.', true);
       return;
     }
 
     btn.dataset.state = 'loading';
+    btn.disabled = true;
     btn.textContent = 'Entrando…';
-    status.style.color = 'var(--blue-store)';
-    status.textContent = '';
+    setStatus('', false);
 
-    setTimeout(function(){
-      btn.dataset.state = '';
-      btn.textContent = 'Entrar';
-      status.textContent = 'Formulário pronto para integração com seu backend de autenticação.';
-    }, 900);
+    api.login(emailVal, senhaVal)
+      .then(function(r){
+        if(!r.ok){
+          setStatus(r.data.message || 'Não foi possível entrar.', true);
+          return;
+        }
+        // "Manter conectado": localStorage sobrevive ao fechar o navegador; sessionStorage não
+        var storage = remember ? localStorage : sessionStorage;
+        try { storage.setItem('techstore:user', JSON.stringify(r.data.user)); } catch(_) {}
+
+        setStatus('Bem-vindo, ' + r.data.user.name + '! Atendido pela instância ' + r.instance + '.', false);
+        senha.value = '';
+      })
+      .catch(function(){
+        setStatus('Não foi possível conectar à API.', true);
+      })
+      .then(function(){
+        btn.dataset.state = '';
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
+      });
   });
+})();

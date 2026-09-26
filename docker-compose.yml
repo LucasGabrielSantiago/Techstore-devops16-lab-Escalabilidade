@@ -1,0 +1,71 @@
+# ==========================================
+# TechStore - Problemática 02: Crescimento e Escalabilidade
+#
+#   Navegador -> Nginx (:HTTP_PORT) -> /      -> frontend estático
+#                                     -> /api/* -> app x N réplicas -> PostgreSQL
+#
+# Subir:    docker compose up -d --build
+# Escalar:  docker compose up -d --scale app=5 --no-recreate
+# ==========================================
+name: techstore
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-techstore}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env}
+      POSTGRES_DB: ${DB_NAME:-techstore}
+    volumes:
+      - pgdata:/var/lib/postgresql/data              # dados sobrevivem a restart/recriação
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    # Sem "ports": o banco só é acessível pela rede interna do Compose
+
+  app:
+    image: ${APP_IMAGE:-techstore-api:local}
+    build: ./backend
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-techstore}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-techstore}
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+    # Sem "ports": várias réplicas não podem publicar a mesma porta no host.
+    # Quem recebe o tráfego externo é o Nginx.
+    expose:
+      - "3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    deploy:
+      replicas: ${APP_REPLICAS:-2}
+      resources:
+        limits:
+          cpus: "${APP_CPU_LIMIT:-0.5}"
+          memory: ${APP_MEM_LIMIT:-256M}
+    stop_grace_period: 15s   # tempo para o desligamento gracioso (SIGTERM)
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro   # frontend estático
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:

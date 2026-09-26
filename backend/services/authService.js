@@ -1,95 +1,55 @@
+const bcrypt = require("bcrypt");
+const db = require("../db");
 
+const httpError = (status, message) => Object.assign(new Error(message), { status });
 
-const fs = require("fs"); 
-const path = require("path");
-const bcrypt = require("bcrypt"); 
+// Registra um novo usuário
+const register = async ({ name, email, password } = {}) => {
 
-const usersFile = path.join(__dirname, "../data/users.json"); 
-
-// Funcao para ler os usuarios do arquivo JSON
-const getUsers = () => {
-    const data = fs.readFileSync(usersFile, "utf8");
-    return JSON.parse(data);
-};
-
-// Funcao para salvar os usuarios no arquivo JSON
-const saveUsers = (users) => {
-    fs.writeFileSync(
-        usersFile,
-        JSON.stringify(users, null, 4),
-        "utf8"
-    );
-};
-
-// Funcao para registrar um novo usuario
-const register = async ({ name, email, password }) => { 
-
-    const users = getUsers();
-
-    const userExists = users.find(
-        user => user.email === email
-    );
-
-    if (userExists) {
-        throw new Error("E-mail já cadastrado.");
+    if (!name || !email || !password) {
+        throw httpError(400, "Nome, e-mail e senha são obrigatórios.");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = {
-        id: users.length + 1,
-        name,
-        email,
-        password: hashedPassword,
-        role: "customer"
-    };
+    try {
+        const { rows } = await db.query(
+            `INSERT INTO users (name, email, password)
+             VALUES ($1, $2, $3)
+             RETURNING id, name, email, role`,
+            [name, email, hashedPassword]
+        );
+        return rows[0];
 
-    users.push(newUser);
-
-    saveUsers(users);
-
-    return {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role
-    };
+    } catch (error) {
+        // 23505 = violação de UNIQUE. Quem garante e-mail único é o banco,
+        // então funciona mesmo com duas réplicas recebendo o mesmo cadastro ao mesmo tempo.
+        if (error.code === "23505") throw httpError(400, "E-mail já cadastrado.");
+        throw error;
+    }
 };
 
-// Funcao para realizar o login do usuario
-const login = async ({ email, password }) => {
+// Realiza o login do usuário
+const login = async ({ email, password } = {}) => {
 
-    const users = getUsers();
-
-    const user = users.find(
-        user => user.email === email
-    );
-
-    if (!user) {
-        throw new Error("E-mail ou senha inválidos.");
+    if (!email || !password) {
+        throw httpError(401, "E-mail ou senha inválidos.");
     }
 
-    const passwordMatch = await bcrypt.compare(
-        password,
-        user.password
+    const { rows } = await db.query(
+        "SELECT id, name, email, password, role FROM users WHERE email = $1",
+        [email]
     );
+    const user = rows[0];
 
-    if (!passwordMatch) {
-        throw new Error("E-mail ou senha inválidos.");
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+        throw httpError(401, "E-mail ou senha inválidos.");
     }
 
-    return {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-    };
+    return { id: user.id, name: user.name, email: user.email, role: user.role };
 };
-
 
 module.exports = {
-    getUsers,
-    saveUsers,
     register,
     login
 };

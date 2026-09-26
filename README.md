@@ -37,6 +37,22 @@ Atualmente a TechStore possui:
 
 ---
 
+---
+
+## 📈 Projeto Integrador — Problemática 02 (Escalabilidade)
+
+A API agora roda em múltiplas réplicas atrás de um Nginx, com PostgreSQL como armazenamento compartilhado.
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+docker compose up -d --no-recreate --scale app=5
+```
+
+Arquitetura, execução, testes de carga e limitações: [docs/PROBLEMATICA-02.md](docs/PROBLEMATICA-02.md)
+
+---
+
 ## ▶️ Como executar
 
 Clone o projeto:

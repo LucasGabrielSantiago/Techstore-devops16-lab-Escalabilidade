@@ -1,110 +1,78 @@
-const fs = require("fs");
-const path = require("path");
+const db = require("../db");
 
-// Faz o import do serviço de autenticação
-const productsFile = path.join(__dirname, "../data/products.json");
+// Erro com status HTTP, para o controller saber o que responder
+const httpError = (status, message) => Object.assign(new Error(message), { status });
 
-
-// Funcao para ler os produtos do arquivo JSON
-const getProducts = () => {
-
-    const data = fs.readFileSync(productsFile, "utf8");
-
-    return JSON.parse(data);
-
-};
-
-
-// Funcao para salvar os produtos no arquivo JSON
-const saveProducts = (products) => {
-
-    fs.writeFileSync(
-        productsFile,
-        JSON.stringify(products, null, 4),
-        "utf8"
-    );
-
-};
-
-// Funcao para criar (cadastrar) um novo produto
-const createProduct = ({ name, description, price, stock }) => {
-
-    const products = getProducts(); // Lê os produtos existentes do arquivo JSON
-
-    // Gerar um novo ID para o produto
-    const nextId =
-    products.length === 0
-        ? 1
-        : Math.max(...products.map(product => product.id)) + 1;
-
-        // Cria um novo objeto de produto com os dados fornecidos
-    const newProduct = {
-        id: nextId,
-        name,
-        description,
-        price,
-        stock
-    };
-
-    products.push(newProduct);
-
-    saveProducts(products);
-
-    return newProduct;
-};
-
-// Funcao para atualizar um produto existente
-const updateProduct = (id, updatedData) => {
-
-    const products = getProducts();
-
-    const index = products.findIndex(
-        product => product.id === Number(id)
-    );
-
-    if (index === -1) {
-        throw new Error("Produto não encontrado.");
+// Valida os campos recebidos (partial = true no update, onde nada é obrigatório)
+const validate = ({ name, price, stock }, partial = false) => {
+    if (!partial && (!name || typeof name !== "string")) {
+        throw httpError(400, "O campo 'name' é obrigatório.");
     }
-
-    products[index] = {
-        ...products[index],
-        ...updatedData,
-        id: products[index].id
-    };
-
-    saveProducts(products);
-
-    return products[index];
+    if ((!partial || price !== undefined) && (typeof price !== "number" || price < 0)) {
+        throw httpError(400, "O campo 'price' deve ser um número maior ou igual a zero.");
+    }
+    if (stock !== undefined && (!Number.isInteger(stock) || stock < 0)) {
+        throw httpError(400, "O campo 'stock' deve ser um inteiro maior ou igual a zero.");
+    }
 };
 
+const COLUMNS = "id, name, description, price, stock";
 
-// Funcao para excluir um produto
-const deleteProduct = (id) => {
+// Lista todos os produtos
+const getProducts = async () => {
+    const { rows } = await db.query(`SELECT ${COLUMNS} FROM products ORDER BY id`);
+    return rows;
+};
 
-    const products = getProducts();
+// Cria (cadastra) um novo produto — o ID é gerado pelo banco (SERIAL),
+// então duas réplicas criando ao mesmo tempo nunca geram IDs repetidos
+const createProduct = async (data = {}) => {
+    validate(data);
+    const { name, description = null, price, stock = 0 } = data;
 
-    const index = products.findIndex(
-        product => product.id === Number(id)
+    const { rows } = await db.query(
+        `INSERT INTO products (name, description, price, stock)
+         VALUES ($1, $2, $3, $4)
+         RETURNING ${COLUMNS}`,
+        [name, description, price, stock]
+    );
+    return rows[0];
+};
+
+// Atualiza um produto existente (só os campos enviados)
+const updateProduct = async (id, data = {}) => {
+    validate(data, true);
+    const { name, description, price, stock } = data;
+
+    const { rows } = await db.query(
+        `UPDATE products SET
+            name        = COALESCE($1, name),
+            description = COALESCE($2, description),
+            price       = COALESCE($3, price),
+            stock       = COALESCE($4, stock),
+            updated_at  = NOW()
+         WHERE id = $5
+         RETURNING ${COLUMNS}`,
+        [name ?? null, description ?? null, price ?? null, stock ?? null, Number(id)]
     );
 
-    if (index === -1) {
-        throw new Error("Produto não encontrado.");
-    }
-
-    const deletedProduct = products[index];
-
-    products.splice(index, 1);
-
-    saveProducts(products);
-
-    return deletedProduct;
-
+    if (rows.length === 0) throw httpError(404, "Produto não encontrado.");
+    return rows[0];
 };
 
+// Exclui um produto
+const deleteProduct = async (id) => {
+    const { rows } = await db.query(
+        `DELETE FROM products WHERE id = $1 RETURNING ${COLUMNS}`,
+        [Number(id)]
+    );
 
-module.exports = {  // Exporta as funções para serem utilizadas em outros módulos
+    if (rows.length === 0) throw httpError(404, "Produto não encontrado.");
+    return rows[0];
+};
+
+module.exports = {
     getProducts,
-    saveProducts,
     createProduct,
     updateProduct,
     deleteProduct
