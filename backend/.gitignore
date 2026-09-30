@@ -17,3 +17,6 @@ coverage/
 # Arquivos do sistema operacional
 .DS_Store
 Thumbs.db
+
+#Arquivos de log
+resultado*.txt
