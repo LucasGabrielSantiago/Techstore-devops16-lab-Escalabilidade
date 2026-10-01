@@ -60,6 +60,13 @@ jobs:
           API_URL: http://localhost:8080
           EXPECTED_INSTANCES: 3
 
+      - name: Teste de autenticação (cadastro, JWT e token válido nas 3 réplicas)
+        working-directory: backend
+        run: npm run test:auth
+        env:
+          API_URL: http://localhost:8080
+          EXPECTED_INSTANCES: 3
+
       - name: Teste de carga (smoke) com k6
         run: |
           docker run --rm -i --network techstore_default \

@@ -1,6 +1,6 @@
 # 🎨 TechStore - Frontend
 
-Tela de login da TechStore, integrada à API.
+Telas de cadastro, login e painel da TechStore, integradas à API.
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -11,13 +11,32 @@ Tela de login da TechStore, integrada à API.
 
 ```
 frontend/
-├── index.html
-├── css/style.css
-├── js/api.js        # cliente da API (fetch) — lê o cabeçalho X-Instance
-├── js/main.js       # comportamento da tela de login
-├── js/products.js   # (reservado para a tela de produtos)
+├── index.html       # login
+├── cadastro.html    # criar conta
+├── painel.html      # página após o login (exige token)
+├── css/style.css    # visual base (login e cadastro)
+├── css/painel.css   # visual do painel
+├── js/api.js        # cliente da API + sessão (token JWT); envia o token e trata 401
+├── js/main.js       # tela de login
+├── js/cadastro.js   # tela de cadastro
+├── js/painel.js     # painel: usuário logado, produtos, réplicas e "Sair"
+├── js/products.js   # renderização dos cards de produto
 └── images/          # techstore-mark.png (símbolo), favicon.png, logo completo
 ```
+
+## 🔐 Fluxo do usuário
+
+```
+cadastro.html ──(conta criada)──▶ index.html ──(login OK, token salvo)──▶ painel.html
+                                      ▲                                        │
+                                      └────────(Sair ou token expirado)────────┘
+```
+
+- **Login:** a API devolve um **token JWT**. "Manter conectado" guarda o token no `localStorage`
+  (sobrevive ao fechar o navegador); desmarcado, no `sessionStorage`.
+- **Cada chamada à API** leva o cabeçalho `Authorization: Bearer <token>`.
+- **Se a API responder 401** (token inválido ou expirado), o `api.js` apaga o token e volta para o login.
+- **Quem já está logado** e abre o login ou o cadastro vai direto para o painel.
 
 ## 🚀 Como Rodar o Frontend Localmente
 
@@ -31,8 +50,15 @@ http://localhost:8080. O Nginx serve o frontend e encaminha `/api/*` para as ré
 
 | Ação | Endpoint |
 |---|---|
-| Carregar a página | `GET /api/health` |
-| Entrar | `POST /api/auth/login` |
+| Carregar as páginas | `GET /api/health` |
+| Criar conta | `POST /api/auth/register` |
+| Entrar | `POST /api/auth/login` (devolve `token` e `user`) |
+| Confirmar o login no painel | `GET /api/auth/me` (exige token) |
+| Listar produtos | `GET /api/products` |
 
-"Servido por", no rodapé do painel esquerdo, mostra qual réplica da API atendeu a última requisição.
-É assim que o balanceamento de carga aparece durante a demonstração.
+## ⚖️ Balanceamento visível
+
+- **"Servido por"** mostra qual réplica da API atendeu a última requisição.
+- No painel, **"Réplicas que validaram seu login"** lista cada réplica que aceitou o mesmo token.
+  Clique em **Atualizar** algumas vezes: a lista cresce, provando que o login (JWT) funciona
+  em qualquer réplica, sem sessão guardada na memória da API.

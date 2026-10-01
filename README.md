@@ -94,11 +94,14 @@ http://localhost:3000
 |---------|----------|-----------|
 | GET | /api/health | Verifica o status da API |
 | POST | /api/auth/register | Cadastro de usuário |
-| POST | /api/auth/login | Login |
+| POST | /api/auth/login | Login (devolve um token JWT) |
+| GET | /api/auth/me | Dados do usuário logado 🔒 |
 | GET | /api/products | Lista produtos |
-| POST | /api/products | Cadastra produto |
-| PUT | /api/products/:id | Atualiza produto |
-| DELETE | /api/products/:id | Remove produto |
+| POST | /api/products | Cadastra produto 🔒 |
+| PUT | /api/products/:id | Atualiza produto 🔒 |
+| DELETE | /api/products/:id | Remove produto 🔒 |
+
+🔒 = exige o cabeçalho `Authorization: Bearer <token>` (obtido no login).
 
 
 ---

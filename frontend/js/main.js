@@ -1,6 +1,13 @@
 (function(){
+  // Já está logado? Vai direto para o painel.
+  if (session.token()) {
+    location.replace('painel.html');
+    return;
+  }
+
   var toggleVis = document.getElementById('toggleVis');
   var senha = document.getElementById('senha');
+  var emailInput = document.getElementById('login');
   var eyeIcon = document.getElementById('eyeIcon');
   var statusEl = document.getElementById('status');
   var instanceEl = document.getElementById('instance');
@@ -10,6 +17,19 @@
     statusEl.style.color = isError ? '#ff6b6b' : 'var(--blue-store)';
     statusEl.textContent = msg;
   }
+
+  // Mensagens vindas de outras páginas (?cadastro=ok, ?expirou=1, ?saiu=1)
+  var params = new URLSearchParams(location.search);
+  if (params.get('cadastro') === 'ok') {
+    setStatus('Conta criada! Entre com seu e-mail e senha.', false);
+    if (params.get('email')) emailInput.value = params.get('email');
+    senha.focus();
+  } else if (params.get('expirou')) {
+    setStatus('Sua sessão expirou. Entre novamente.', true);
+  } else if (params.get('saiu')) {
+    setStatus('Você saiu da sua conta.', false);
+  }
+  if (location.search) history.replaceState(null, '', location.pathname);
 
   // Mostra qual réplica da API atendeu a última requisição
   document.addEventListener('api:instance', function(e){
@@ -42,7 +62,7 @@
   document.getElementById('loginForm').addEventListener('submit', function(e){
     e.preventDefault();
     var btn = document.getElementById('submitBtn');
-    var emailVal = document.getElementById('login').value.trim();
+    var emailVal = emailInput.value.trim();
     var senhaVal = senha.value;
     var remember = document.querySelector('input[name="remember"]').checked;
 
@@ -60,19 +80,19 @@
       .then(function(r){
         if(!r.ok){
           setStatus(r.data.message || 'Não foi possível entrar.', true);
-          return;
+          return false;
         }
-        // "Manter conectado": localStorage sobrevive ao fechar o navegador; sessionStorage não
-        var storage = remember ? localStorage : sessionStorage;
-        try { storage.setItem('techstore:user', JSON.stringify(r.data.user)); } catch(_) {}
-
-        setStatus('Bem-vindo, ' + r.data.user.name + '! Atendido pela instância ' + r.instance + '.', false);
-        senha.value = '';
+        // Guarda o token JWT; ele vai junto em cada chamada à API
+        session.save(r.data.token, r.data.user, remember);
+        location.href = 'painel.html';
+        return true;
       })
       .catch(function(){
         setStatus('Não foi possível conectar à API.', true);
+        return false;
       })
-      .then(function(){
+      .then(function(redirecting){
+        if (redirecting) return;
         btn.dataset.state = '';
         btn.disabled = false;
         btn.textContent = 'Entrar';

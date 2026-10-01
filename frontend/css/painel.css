@@ -1,0 +1,179 @@
+/* ==========================================
+   TechStore - página do painel (após o login)
+   Usa as variáveis definidas em style.css
+   ========================================== */
+body.painel{
+  min-height:100%;
+  display:flex;
+  flex-direction:column;
+  background:
+    radial-gradient(90% 60% at 10% 0%, rgba(26,166,255,.10), transparent 60%),
+    var(--void);
+}
+
+/* ---------- Barra superior ---------- */
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:10;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  padding:14px clamp(16px,4vw,48px);
+  background:rgba(14,16,23,.86);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--hairline);
+}
+.topbar-brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  text-decoration:none;
+  color:var(--white);
+}
+.topbar-brand img{ width:34px; height:34px; object-fit:contain; }
+.wordmark-sm{
+  font-family:'Space Grotesk', sans-serif;
+  font-weight:600;
+  font-size:20px;
+  letter-spacing:-0.01em;
+}
+.wordmark-sm span{ color:var(--blue-store); }
+
+.topbar-user{ display:flex; align-items:center; gap:16px; }
+.user-info{ display:flex; flex-direction:column; align-items:flex-end; line-height:1.3; }
+.user-hello{ font-size:14.5px; color:var(--text-muted); }
+.user-hello b{ color:var(--white); font-weight:600; }
+.user-email{ font-size:12.5px; color:var(--text-faint); }
+
+.btn-ghost{
+  border:1px solid var(--hairline);
+  background:var(--panel-2);
+  color:var(--white);
+  font-family:inherit;
+  font-size:14px;
+  font-weight:500;
+  padding:9px 16px;
+  border-radius:10px;
+  cursor:pointer;
+  transition:border-color .15s ease, background .15s ease;
+}
+.btn-ghost:hover{ border-color:var(--blue-store); }
+.btn-ghost:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+.btn-ghost[disabled]{ opacity:.6; cursor:progress; }
+
+/* ---------- Conteúdo ---------- */
+.painel-main{
+  flex:1;
+  width:100%;
+  max-width:1160px;
+  margin:0 auto;
+  padding:clamp(28px,5vw,56px) clamp(16px,4vw,48px);
+}
+.painel-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:28px;
+}
+.painel-head h1{
+  font-family:'Space Grotesk', sans-serif;
+  font-weight:600;
+  font-size:clamp(28px,3.4vw,36px);
+  letter-spacing:-0.01em;
+  margin-bottom:6px;
+}
+.painel-head .lead{ color:var(--text-muted); font-size:14.5px; }
+
+.painel-main .status{ margin-bottom:12px; }
+
+/* ---------- Cards de produto ---------- */
+.product-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(270px, 1fr));
+  gap:18px;
+}
+.product-card{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  background:var(--panel);
+  border:1px solid var(--hairline);
+  border-radius:16px;
+  padding:22px;
+  transition:border-color .15s ease, transform .15s ease;
+}
+.product-card:hover{ border-color:rgba(46,156,255,.55); transform:translateY(-2px); }
+.product-name{
+  font-family:'Space Grotesk', sans-serif;
+  font-weight:600;
+  font-size:18px;
+  line-height:1.3;
+}
+.product-desc{
+  color:var(--text-muted);
+  font-size:14px;
+  line-height:1.55;
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.product-desc.empty{ color:var(--text-faint); font-style:italic; }
+.product-bottom{
+  margin-top:auto;
+  padding-top:14px;
+  border-top:1px solid var(--hairline);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:8px 10px;
+}
+.product-price{
+  font-family:'Space Grotesk', sans-serif;
+  font-weight:600;
+  font-size:22px;
+  color:var(--blue-store);
+}
+.stock{
+  font-size:12.5px;
+  font-weight:500;
+  padding:4px 10px;
+  border-radius:999px;
+  background:rgba(46,156,255,.12);
+  color:#8cc8ff;
+  white-space:nowrap;
+}
+.stock.out{ background:rgba(255,107,107,.12); color:#ff9b9b; }
+
+.empty-state{
+  grid-column:1 / -1;
+  text-align:center;
+  padding:56px 16px;
+  border:1px dashed var(--hairline);
+  border-radius:16px;
+  color:var(--text-muted);
+}
+
+/* ---------- Rodapé ---------- */
+.painel-foot{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  padding:18px clamp(16px,4vw,48px);
+  border-top:1px solid var(--hairline);
+  color:var(--text-faint);
+  font-size:13px;
+}
+.painel-foot b{ color:var(--white); font-weight:600; }
+
+@media (max-width:560px){
+  .user-info{ align-items:flex-start; }
+  .user-email{ display:none; }
+}

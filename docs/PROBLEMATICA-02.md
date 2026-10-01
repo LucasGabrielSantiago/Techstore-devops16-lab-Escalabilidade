@@ -80,6 +80,24 @@ docker compose down -v     # apaga também o banco
 | Pico | 2 | | | |
 | Pico | 5 | | | |
 
+## Autenticação (JWT) e escalabilidade
+
+O login usa **token JWT** em vez de sessão guardada na memória da API:
+
+- Com várias réplicas, uma sessão em memória existiria só na réplica que fez o login. Quando o Nginx
+  mandasse o usuário para outra réplica, ele "cairia".
+- O JWT carrega quem é o usuário e é assinado com `JWT_SECRET`. **Qualquer réplica valida o token sozinha**,
+  então a API continua *stateless*.
+- **Todas as réplicas precisam da mesma `JWT_SECRET`** (vem do `.env`). Sem ela, o Compose não sobe e a API
+  se recusa a iniciar.
+- O teste `npm run test:auth` (também no pipeline) confirma que o mesmo token é aceito pelas 3 réplicas.
+
+| Rota | Acesso |
+|---|---|
+| `POST /api/auth/register`, `POST /api/auth/login` | Público |
+| `GET /api/products` | Público (catálogo e teste de carga) |
+| `GET /api/auth/me`, `POST/PUT/DELETE /api/products` | Exige token |
+
 ## Limitações
 
 - **Uma única máquina:** as réplicas dividem a CPU do mesmo host. O limite de 0.5 CPU por réplica simula servidores pequenos para o ganho ser mensurável.

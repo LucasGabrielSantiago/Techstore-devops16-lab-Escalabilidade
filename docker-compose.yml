@@ -39,6 +39,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME:-techstore}
       DB_POOL_MAX: ${DB_POOL_MAX:-10}
+      # A mesma chave para todas as réplicas (o token gerado numa vale nas outras)
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET no .env}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-2h}
     # Sem "ports": várias réplicas não podem publicar a mesma porta no host.
     # Quem recebe o tráfego externo é o Nginx.
     expose:

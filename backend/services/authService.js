@@ -1,16 +1,32 @@
 const bcrypt = require("bcrypt");
 const db = require("../db");
+const { signToken } = require("../middlewares/auth");
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 
-// Registra um novo usuário
-const register = async ({ name, email, password } = {}) => {
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD = 6;
 
-    if (!name || !email || !password) {
-        throw httpError(400, "Nome, e-mail e senha são obrigatórios.");
+// Valida os dados do cadastro
+const validateRegister = ({ name, email, password }) => {
+    if (!name || typeof name !== "string" || !name.trim()) {
+        throw httpError(400, "Informe o seu nome.");
     }
+    if (!email || typeof email !== "string" || !EMAIL_REGEX.test(email.trim())) {
+        throw httpError(400, "Informe um e-mail válido.");
+    }
+    if (!password || typeof password !== "string" || password.length < MIN_PASSWORD) {
+        throw httpError(400, `A senha deve ter no mínimo ${MIN_PASSWORD} caracteres.`);
+    }
+};
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+// Registra um novo usuário
+const register = async (data = {}) => {
+    validateRegister(data);
+
+    const name = data.name.trim();
+    const email = data.email.trim().toLowerCase();
+    const hashedPassword = await bcrypt.hash(data.password, 10);
 
     try {
         const { rows } = await db.query(
@@ -29,7 +45,7 @@ const register = async ({ name, email, password } = {}) => {
     }
 };
 
-// Realiza o login do usuário
+// Realiza o login: confere a senha e devolve o usuário + token JWT
 const login = async ({ email, password } = {}) => {
 
     if (!email || !password) {
@@ -37,8 +53,8 @@ const login = async ({ email, password } = {}) => {
     }
 
     const { rows } = await db.query(
-        "SELECT id, name, email, password, role FROM users WHERE email = $1",
-        [email]
+        "SELECT id, name, email, password, role FROM users WHERE LOWER(email) = $1",
+        [String(email).trim().toLowerCase()]
     );
     const user = rows[0];
 
@@ -46,10 +62,22 @@ const login = async ({ email, password } = {}) => {
         throw httpError(401, "E-mail ou senha inválidos.");
     }
 
-    return { id: user.id, name: user.name, email: user.email, role: user.role };
+    const publicUser = { id: user.id, name: user.name, email: user.email, role: user.role };
+    return { user: publicUser, token: signToken(publicUser) };
+};
+
+// Busca os dados do usuário logado (a partir do id que veio no token)
+const getById = async (id) => {
+    const { rows } = await db.query(
+        "SELECT id, name, email, role FROM users WHERE id = $1",
+        [id]
+    );
+    if (rows.length === 0) throw httpError(401, "Usuário não encontrado.");
+    return rows[0];
 };
 
 module.exports = {
     register,
-    login
+    login,
+    getById
 };

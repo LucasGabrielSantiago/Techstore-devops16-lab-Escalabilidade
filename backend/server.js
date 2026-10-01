@@ -1,4 +1,11 @@
 const app = require("./app"); // Importando a instância do aplicativo Express do arquivo app.js
+
+// Sem JWT_SECRET não há como assinar nem validar tokens: melhor falhar já na subida
+// (o healthcheck acusa o problema) do que subir uma réplica que não consegue autenticar.
+if (!process.env.JWT_SECRET) {
+    console.error("❌ JWT_SECRET não definida. Configure-a no .env (a mesma em todas as réplicas).");
+    process.exit(1);
+}
 const db = require("./db");
 
 // Definindo a porta do servidor a partir das variáveis de ambiente ou usando a porta padrão 3000

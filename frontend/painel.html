@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TechStore — Painel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="images/favicon.png">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/painel.css">
+</head>
+<body class="painel">
+
+<header class="topbar">
+  <a class="topbar-brand" href="painel.html" aria-label="TechStore — início">
+    <img src="images/techstore-mark.png" alt="" aria-hidden="true">
+    <span class="wordmark-sm">Tech<span>Store</span></span>
+  </a>
+  <div class="topbar-user">
+    <div class="user-info">
+      <span class="user-hello">Olá, <b id="userName">…</b></span>
+      <span class="user-email" id="userEmail"></span>
+    </div>
+    <button type="button" class="btn-ghost" id="logoutBtn">Sair</button>
+  </div>
+</header>
+
+<main class="painel-main">
+  <div class="painel-head">
+    <div>
+      <h1>Produtos</h1>
+      <p class="lead" id="productsCount">Carregando catálogo…</p>
+    </div>
+    <button type="button" class="btn-ghost" id="refreshBtn">Atualizar</button>
+  </div>
+
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+  <div class="product-grid" id="productGrid" aria-live="polite"></div>
+</main>
+
+<footer class="painel-foot">
+  <div>Servido por <b id="instance">…</b></div>
+  <div class="foot-hint">Réplicas que validaram seu login: <b id="instancesSeen">—</b></div>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/products.js"></script>
+<script src="js/painel.js"></script>
+</body>
+</html>

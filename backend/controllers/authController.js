@@ -1,4 +1,5 @@
 // Faz o import do serviço de autenticação
+const os = require("os");
 const authService = require("../services/authService");
 
 const handleError = (res, error, fallbackStatus) => {
@@ -11,9 +12,10 @@ const handleError = (res, error, fallbackStatus) => {
 // Função para lidar com o login do usuário
 const login = async (req, res) => {
     try {
-        const user = await authService.login(req.body);
+        const { user, token } = await authService.login(req.body);
         return res.status(200).json({
             message: "Login realizado com sucesso.",
+            token,
             user
         });
     } catch (error) {
@@ -34,8 +36,19 @@ const register = async (req, res) => {
     }
 };
 
+// Dados do usuário logado. "instance" mostra qual réplica validou o token.
+const me = async (req, res) => {
+    try {
+        const user = await authService.getById(req.user.id);
+        return res.status(200).json({ user, instance: os.hostname() });
+    } catch (error) {
+        return handleError(res, error, 500);
+    }
+};
+
 // Exporta as funções de login e registro para serem usadas em outros arquivos
 module.exports = {
     login,
-    register
+    register,
+    me
 };
