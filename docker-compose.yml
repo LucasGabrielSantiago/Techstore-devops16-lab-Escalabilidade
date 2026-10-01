@@ -47,7 +47,7 @@ services:
       db:
         condition: service_healthy
     deploy:
-      replicas: ${APP_REPLICAS:-2}
+      replicas: ${APP_REPLICAS:-1}
       resources:
         limits:
           cpus: "${APP_CPU_LIMIT:-0.5}"

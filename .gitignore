@@ -19,3 +19,6 @@ Thumbs.db
 # Resultados exportados de testes de carga
 loadtest/*.json
 loadtest/*.html
+
+# Logs do resultado em TXT
+resultado*.txt

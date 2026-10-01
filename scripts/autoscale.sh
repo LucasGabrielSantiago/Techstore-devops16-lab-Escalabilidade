@@ -4,7 +4,7 @@
 #
 # O Docker Compose NÃO faz autoscaling. Este script imita o que um
 # orquestrador (ex.: Kubernetes HPA) faria: mede a CPU média das réplicas
-# e chama "docker compose --scale" para aumentar ou reduzir.
+# e chama "docker-compose --scale" para aumentar ou reduzir.
 #
 # Uso (na raiz do projeto):  ./scripts/autoscale.sh
 # Parar: Ctrl+C
@@ -24,7 +24,7 @@ log() { echo "[$(date +%H:%M:%S)] $*"; }
 
 scale_to() {
     log "⚙️  Escalando $SERVICE para $1 réplicas..."
-    docker compose up -d --no-deps --no-recreate --scale "$SERVICE=$1" "$SERVICE" >/dev/null
+    docker-compose up -d --no-deps --no-recreate --scale "$SERVICE=$1" "$SERVICE" >/dev/null
     log "✅ Agora com $1 réplicas. Aguardando ${COOLDOWN}s (cooldown)."
     sleep "$COOLDOWN"
 }
@@ -32,11 +32,11 @@ scale_to() {
 log "Autoscaler iniciado: min=$MIN_REPLICAS max=$MAX_REPLICAS sobe>${SCALE_UP_CPU}% desce<${SCALE_DOWN_CPU}%"
 
 while true; do
-    ids=$(docker compose ps -q "$SERVICE")
+    ids=$(docker-compose ps -q "$SERVICE")
     count=$(echo "$ids" | grep -c . || true)
 
     if [ "$count" -eq 0 ]; then
-        log "Nenhuma réplica de $SERVICE rodando. Suba o ambiente com: docker compose up -d"
+        log "Nenhuma réplica de $SERVICE rodando. Suba o ambiente com: docker-compose up -d"
         sleep "$INTERVAL"; continue
     fi
 
