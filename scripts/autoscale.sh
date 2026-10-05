@@ -12,7 +12,7 @@
 set -euo pipefail
 
 SERVICE="${SERVICE:-app}"
-MIN_REPLICAS="${MIN_REPLICAS:-2}"
+MIN_REPLICAS="${MIN_REPLICAS:-1}"
 MAX_REPLICAS="${MAX_REPLICAS:-5}"
 # CPU% do "docker stats": 100% = 1 núcleo. Com limite de 0.5 CPU, o máximo por réplica é ~50%.
 SCALE_UP_CPU="${SCALE_UP_CPU:-35}"
